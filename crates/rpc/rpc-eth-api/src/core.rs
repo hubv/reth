@@ -20,6 +20,10 @@ use reth_rpc_types::{
     TransactionRequest, Work,
 };
 use tracing::trace;
+use serde::{Serialize, Deserialize};
+use serde_json::{Value, from_reader};
+use std::fs::File;
+use std::io::{self, prelude::*, BufReader, BufRead};
 
 /// Helper trait, unifies functionality that must be supported to implement all RPC methods for
 /// server.
@@ -211,6 +215,24 @@ pub trait EthApi {
         block_overrides: Option<Box<BlockOverrides>>,
     ) -> RpcResult<Bytes>;
 
+    /// Executes a new message call immediately without creating a transaction on the block chain.
+    #[method(name = "pfcall")]
+    async fn pfcall(
+        &self,
+        request: TransactionRequest,
+        block_number: Option<BlockId>,
+        state_overrides: Option<StateOverride>,
+        block_overrides: Option<Box<BlockOverrides>>,
+    ) -> RpcResult<Bytes>;
+
+    /// update PFC
+    #[method(name = "updatePFC")]
+    async fn update_pfc(&self, input_list: Vec<String>) -> RpcResult<bool>; 
+
+    /// update PFC
+    #[method(name = "getPFC")]
+    async fn get_pfc(&self) -> RpcResult<std::collections::HashMap<String, String>>; 
+
     /// Simulate arbitrary number of transactions at an arbitrary blockchain index, with the
     /// optionality of state overrides
     #[method(name = "callMany")]
@@ -345,6 +367,52 @@ pub trait EthApi {
         block_number: Option<BlockId>,
     ) -> RpcResult<EIP1186AccountProofResponse>;
 }
+
+const PFC_FILE_PATH: &str = "/data01/full_node/PFC.json";
+
+
+// 定义 AccountState 结构体
+#[derive(Serialize, Deserialize)]
+struct AccountState {
+    nonce: Option<String>,
+    code: String,
+    balance: Option<String>,
+    state: Option<String>,
+    stateDiff: Option<String>,
+}
+
+async fn save_pfc_to_file(contracts: Vec<String>) -> Result<bool, io::Error> {
+    let accounts = contracts
+        .into_iter()
+        .map(|b| AccountState {
+            nonce: None,
+            code: b,
+            balance: None,
+            state: None,
+            stateDiff: None,
+        })
+        .collect::<Vec<_>>();
+
+    // 构建最终的 JSON 对象
+    let result = serde_json::to_string_pretty(&accounts.into_iter().enumerate().map(|(i, a)| (format!("0xceeb00000000000000000000000000000000000{}", i), a)).collect::<std::collections::HashMap<_, _>>())
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to serialize data: {}", e)))?;
+
+    // 写入文件
+    let mut file = File::create(PFC_FILE_PATH)?;
+    file.write_all(result.as_bytes())?;
+
+    Ok(true)
+}
+
+/// 从文件中读取 StateOverride 数据
+fn read_state_override_from_file(file_path: &str) -> Result<Option<StateOverride>, io::Error>  {
+    let file = File::open(file_path)?;
+    let reader = BufReader::new(file);
+
+    let overrides: StateOverride = serde_json::from_reader(reader)?; // 假设使用 serde_json 来反序列化
+    Ok(Some(overrides))
+}
+
 
 #[async_trait::async_trait]
 impl<T> EthApiServer for T
@@ -601,6 +669,46 @@ where
             EvmOverrides::new(state_overrides, block_overrides),
         )
         .await?)
+    }
+
+
+    /// Handler for: `eth_pfcall`
+    async fn pfcall(
+        &self,
+        request: TransactionRequest,
+        block_number: Option<BlockId>,
+        state_overrides: Option<StateOverride>,
+        block_overrides: Option<Box<BlockOverrides>>,
+    ) -> RpcResult<Bytes> {
+        let state_overrides = read_state_override_from_file(PFC_FILE_PATH).expect("Failed to Reading from PFC file");
+        trace!(target: "rpc::eth", ?request, ?block_number, ?state_overrides, ?block_overrides, "Serving eth_pfcall");
+        Ok(EthCall::call(
+            self,
+            request,
+            block_number,
+            EvmOverrides::new(state_overrides, block_overrides),
+        )
+        .await?)
+    }
+
+    /// Handler for: `eth_updatePFC`
+    async fn update_pfc(&self, input_list: Vec<String>) -> RpcResult<bool> {
+        if input_list.len() > 10 {
+            return Err(internal_rpc_err("The number of contracts is incorrect, the maximum number of contracts supported is 10.".to_string()));
+        }      
+        save_pfc_to_file(input_list).await.map_err(|e| internal_rpc_err(format!("Failed to save PFC: {}", e)))
+    }
+
+    /// 获取 PFC 映射
+    async fn get_pfc(&self) -> RpcResult<std::collections::HashMap<String, String>> {
+        let state_overrides = read_state_override_from_file(PFC_FILE_PATH).expect("Failed to Reading from PFC file").unwrap();
+    
+        let mut output_map = std::collections::HashMap::new();
+        for (key, value) in &state_overrides {
+            output_map.insert(key.clone().to_string(), value.code.clone().unwrap().to_string());
+        }
+    
+        Ok(output_map)
     }
 
     /// Handler for: `eth_callMany`

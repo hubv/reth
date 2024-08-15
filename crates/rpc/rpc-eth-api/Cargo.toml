@@ -30,6 +30,8 @@ reth-execution-types.workspace = true
 reth-rpc-eth-types.workspace = true
 reth-rpc-server-types.workspace = true
 reth-network-api.workspace = true
+serde = { version = "1.0", default-features = false }
+serde_json = "1.0.94"
 
 # ethereum
 alloy-dyn-abi = { workspace = true, features = ["eip712"] }
