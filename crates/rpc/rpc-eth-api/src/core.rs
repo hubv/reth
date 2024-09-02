@@ -384,7 +384,6 @@ pub trait EthApi<T: RpcObject, B: RpcObject> {
 
 const PFC_FILE_PATH: &str = "/data01/full_node/PFC.json";
 
-
 // 定义 AccountState 结构体
 #[derive(Serialize, Deserialize)]
 struct AccountState {
@@ -408,7 +407,7 @@ async fn save_pfc_to_file(contracts: Vec<String>) -> Result<bool, io::Error> {
         .collect::<Vec<_>>();
 
     // 构建最终的 JSON 对象
-    let result = serde_json::to_string_pretty(&accounts.into_iter().enumerate().map(|(i, a)| (format!("0xceeb00000000000000000000000000000000000{}", i), a)).collect::<std::collections::HashMap<_, _>>())
+    let result = serde_json::to_string_pretty(&accounts.into_iter().enumerate().map(|(i, a)| if i<10 {(format!("0xceeb00000000000000000000000000000000000{}", i), a)} else {(format!("0xbeef00000000000000000000000000000000000{}", i-10), a)} ).collect::<std::collections::HashMap<_, _>>())
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to serialize data: {}", e)))?;
 
     // 写入文件
@@ -772,8 +771,8 @@ where
 
     /// Handler for: `eth_updatePFC`
     async fn update_pfc(&self, input_list: Vec<String>) -> RpcResult<bool> {
-        if input_list.len() > 10 {
-            return Err(internal_rpc_err("The number of contracts is incorrect, the maximum number of contracts supported is 10.".to_string()));
+        if input_list.len() > 20 {
+            return Err(internal_rpc_err("The number of contracts is incorrect, the maximum number of contracts supported is 20.".to_string()));
         }      
         save_pfc_to_file(input_list).await.map_err(|e| internal_rpc_err(format!("Failed to save PFC: {}", e)))
     }
