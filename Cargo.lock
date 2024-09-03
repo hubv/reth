@@ -8851,6 +8851,8 @@ dependencies = [
  "revm",
  "revm-inspectors",
  "revm-primitives",
+ "serde",
+ "serde_json",
  "tokio",
  "tracing",
 ]
