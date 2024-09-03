@@ -30,6 +30,8 @@ reth-rpc-eth-types.workspace = true
 reth-rpc-server-types.workspace = true
 reth-network-api.workspace = true
 reth-trie.workspace = true
+serde = { version = "1.0", default-features = false }
+serde_json = "1.0.94"
 
 # ethereum
 alloy-eips.workspace = true
