@@ -31,6 +31,8 @@ reth-rpc-server-types.workspace = true
 reth-network-api.workspace = true
 reth-node-api.workspace = true
 reth-trie-common = { workspace = true, features = ["eip1186"] }
+serde = { version = "1.0", default-features = false }
+serde_json = "1.0.94"
 
 # ethereum
 alloy-rlp.workspace = true
