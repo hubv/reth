@@ -260,8 +260,9 @@ mod tests {
         let config = args.eth_config();
         assert_eq!(config.rpc_gas_cap, 1000);
 
-        let args = CommandParser::<RpcServerArgs>::try_parse_from(["reth", "--rpc.gascap", "0"]);
-        assert!(args.is_err());
+        let args = CommandParser::<RpcServerArgs>::parse_from(["reth", "--rpc.gascap", "0"]).args;;
+        let config = args.eth_config();
+        assert_eq!(config.rpc_gas_cap, 0);
     }
 
     #[test]

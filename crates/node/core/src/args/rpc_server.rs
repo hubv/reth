@@ -158,7 +158,7 @@ pub struct RpcServerArgs {
         long = "rpc.gascap",
         alias = "rpc-gascap",
         value_name = "GAS_CAP",
-        value_parser = RangedU64ValueParser::<u64>::new().range(1..),
+        value_parser = RangedU64ValueParser::<u64>::new().range(0..),
         default_value_t = constants::gas_oracle::RPC_DEFAULT_GAS_CAP
     )]
     pub rpc_gas_cap: u64,
