@@ -239,7 +239,7 @@ pub trait EthApi<T: RpcObject, B: RpcObject, R: RpcObject, H: RpcObject> {
         block_number: Option<BlockId>,
         state_overrides: Option<StateOverride>,
         block_overrides: Option<Box<BlockOverrides>>,
-    ) -> RpcResult<Bytes>;
+    ) -> RpcResult<(Bytes, u64)>;
 
     /// update PFC
     #[method(name = "updatePFC")]
@@ -728,10 +728,10 @@ where
         block_number: Option<BlockId>,
         state_overrides: Option<StateOverride>,
         block_overrides: Option<Box<BlockOverrides>>,
-    ) -> RpcResult<Bytes> {
+    ) -> RpcResult<(Bytes, u64)> {
         let state_overrides = read_state_override_from_file(PFC_FILE_PATH).expect("Failed to Reading from PFC file");
         trace!(target: "rpc::eth", ?request, ?block_number, ?state_overrides, ?block_overrides, "Serving eth_pfcall");
-        Ok(EthCall::call(
+        Ok(EthCall::call2(
             self,
             request,
             block_number,

@@ -32,6 +32,7 @@ use reth_revm::{
 use reth_rpc_eth_types::{
     cache::db::{StateCacheDbRefMutWrapper, StateProviderTraitObjWrapper},
     error::ensure_success,
+    error::ensure_success2,
     revm_utils::{
         apply_block_overrides, apply_state_overrides, caller_gas_allowance, get_precompiles,
         CallFees,
@@ -262,6 +263,21 @@ pub trait EthCall: EstimateCall + Call + LoadPendingBlock + LoadBlock + FullEthA
                 self.transact_call_at(request, block_number.unwrap_or_default(), overrides).await?;
 
             ensure_success(res.result).map_err(Self::Error::from_eth_err)
+        }
+    }
+
+    // Executes the call2 request (`eth_call`) and returns the output
+    fn call2(
+        &self,
+        request: TransactionRequest,
+        block_number: Option<BlockId>,
+        overrides: EvmOverrides,
+    ) -> impl Future<Output = Result<(Bytes, u64), Self::Error>> + Send {
+        async move {
+            let (res, _env) =
+                self.transact_call_at(request, block_number.unwrap_or_default(), overrides).await?;
+
+            ensure_success2(res.result).map_err(Self::Error::from_eth_err)
         }
     }
 

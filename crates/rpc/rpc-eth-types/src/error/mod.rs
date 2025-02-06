@@ -759,6 +759,20 @@ pub fn ensure_success(result: ExecutionResult) -> EthResult<Bytes> {
     }
 }
 
+/// Converts the evm [`ExecutionResult`] into a result2 where `Ok` variant is the output bytes if it
+/// is [`ExecutionResult::Success`].
+pub fn ensure_success2(result: ExecutionResult) -> EthResult<(Bytes, u64)> {
+    match result {
+        ExecutionResult::Success { output,gas_used, .. } => Ok((output.into_data(), gas_used)),
+        ExecutionResult::Revert { output, .. } => {
+            Err(RpcInvalidTransactionError::Revert(RevertError::new(output)).into())
+        }
+        ExecutionResult::Halt { reason, gas_used } => {
+            Err(RpcInvalidTransactionError::halt(reason, gas_used).into())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use revm_primitives::b256;
