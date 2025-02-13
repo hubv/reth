@@ -759,7 +759,11 @@ pub trait Call:
         }
 
         // apply configured gas cap
-        evm_env.block_env.gas_limit = U256::from(self.call_gas_limit());
+        if self.call_gas_limit() == 0 {
+            evm_env.block_env.gas_limit = U256::MAX;
+        } else {
+            evm_env.block_env.gas_limit = U256::from(self.call_gas_limit());
+        }
 
         // Disabled because eth_call is sometimes used with eoa senders
         // See <https://github.com/paradigmxyz/reth/issues/1959>
